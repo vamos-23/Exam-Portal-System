@@ -1,6 +1,7 @@
 package com.examportal.backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 @Entity
@@ -14,12 +15,17 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     private String name;
 
+    @Email
+    @NotBlank
     @Column(unique = true)
     private String email;
 
+    @NotBlank
     private String password;
 
-    private String role; // ADMIN or STUDENT
+    @NotBlank
+    private String role; // ADMIN / STUDENT
 }
