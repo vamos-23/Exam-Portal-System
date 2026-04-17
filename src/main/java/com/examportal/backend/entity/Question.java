@@ -2,6 +2,7 @@ package com.examportal.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Data
@@ -18,7 +19,17 @@ public class Question {
     private String optionB;
     private String optionC;
     private String optionD;
-    private String correctAnswer;
+
+    @Enumerated(EnumType.STRING)
+    private QuestionType type;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "question_correct_answers",
+            joinColumns = @JoinColumn(name = "question_id")
+    )
+    @Column(name = "answer")
+    private List<String> correctAnswers;
 
     @ManyToOne
     @JoinColumn(name = "exam_id")

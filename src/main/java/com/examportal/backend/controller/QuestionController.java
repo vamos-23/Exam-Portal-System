@@ -9,13 +9,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin/questions")
+@CrossOrigin("*")
 public class QuestionController {
 
     @Autowired
     private QuestionService questionService;
 
     @PostMapping("/{examId}")
-    public Question addQuestion(@PathVariable Long examId, @RequestBody Question question) {
+    public Question addQuestion(@PathVariable Long examId,
+                                @RequestBody Question question) {
         return questionService.addQuestion(examId, question);
     }
 
