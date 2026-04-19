@@ -5,21 +5,28 @@ import com.examportal.backend.entity.*;
 import com.examportal.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SubmissionService {
 
     @Autowired
     private SubmissionRepository submissionRepository;
+
     @Autowired
     private AnswerRepository answerRepository;
+
     @Autowired
     private QuestionRepository questionRepository;
+
     @Autowired
     private ExamRepository examRepository;
 
+    @Transactional
     public Submission submitExam(SubmitExamRequest request, String email) {
-
         Exam exam = examRepository.findById(request.getExamId())
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
@@ -31,37 +38,51 @@ public class SubmissionService {
 
         int score = 0;
 
+        List<Long> questionIds = request.getAnswers()
+                .stream()
+                .map(AnswerRequest::getQuestionId)
+                .toList();
+
+        Map<Long, Question> questionMap = questionRepository.findAllById(questionIds)
+                .stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
         for (AnswerRequest ans : request.getAnswers()) {
-
-            Question q = questionRepository.findById(ans.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Question not found"));
-
-            var correct = q.getCorrectAnswers();
-            var selected = ans.getSelectedOptions();
-
-            boolean isCorrect = false;
-
-            if (q.getType() == QuestionType.SCQ) {
-                isCorrect = selected != null &&
-                        selected.size() == 1 &&
-                        correct.get(0).equalsIgnoreCase(selected.get(0));
-            } else {
-                isCorrect = selected != null &&
-                        selected.containsAll(correct) &&
-                        correct.containsAll(selected);
-            }
-
+            Question q = questionMap.get(ans.getQuestionId());
+            if (q == null) throw new RuntimeException("Question not found");
+            List<String> correct = q.getCorrectAnswers();
+            List<String> selected = ans.getSelectedOptions();
+            boolean isCorrect = evaluateAnswer(q, correct, selected);
             if (isCorrect) score++;
-
             Answer answer = new Answer();
             answer.setQuestion(q);
             answer.setSubmission(submission);
             answer.setSelectedOptions(selected);
-
             answerRepository.save(answer);
         }
-
         submission.setScore(score);
         return submissionRepository.save(submission);
+    }
+
+
+    private boolean evaluateAnswer(Question q, List<String> correct, List<String> selected) {
+        if (selected == null || correct == null) return false;
+        if (q.getType() == QuestionType.SCQ) {
+            return selected.size() == 1 &&
+                    correct.get(0).equalsIgnoreCase(selected.get(0));
+        }
+        return new HashSet<>(selected).equals(new HashSet<>(correct));
+    }
+
+    public List<Submission> getAllSubmissions() {
+        return submissionRepository.findAll();
+    }
+
+    public List<Submission> getSubmissionsByExam(Long examId) {
+        return submissionRepository.findByExamId(examId);
+    }
+
+    public List<Submission> getByUser(String email) {
+        return submissionRepository.findByUserEmail(email);
     }
 }

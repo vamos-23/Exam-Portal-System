@@ -9,15 +9,19 @@ import java.util.List;
 
 @Service
 public class ExamService {
-
     @Autowired
     private ExamRepository examRepository;
 
-    public Exam createExam(Exam exam, String adminEmail) {
-        exam.setCreatedBy(adminEmail);
+    public Exam createExam(Exam exam, String email) {
+        exam.setCreatedBy(email);
         return examRepository.save(exam);
     }
+
     public List<Exam> getAllExams() {
         return examRepository.findAll();
+    }
+
+    public void deleteExam(Long id) {
+        examRepository.deleteById(id);
     }
 }
